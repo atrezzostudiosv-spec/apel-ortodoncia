@@ -1,5 +1,4 @@
 const modules = {
-  'ATZ-NAV-001': './library/navegacion/ATZ-NAV-001.js',
   'ATZ-SEC-004': './library/secciones/ATZ-SEC-004.js',
   'ATZ-SEC-007': './library/secciones/ATZ-SEC-007.js',
 };
@@ -76,3 +75,12 @@ if (studio) {
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   });
 }
+
+// Native disclosures keep the primary navigation available with JavaScript off.
+document.querySelector('.primary-navigation')?.addEventListener('keydown', event => {
+  const open = event.target.closest('.header-disclosure[open]');
+  if (event.key !== 'Escape' || !open) return;
+  event.preventDefault();
+  open.open = false;
+  open.querySelector('summary').focus();
+});

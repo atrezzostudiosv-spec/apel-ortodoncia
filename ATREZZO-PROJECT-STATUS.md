@@ -62,3 +62,16 @@ La autorización expresa para GitHub Pages sustituye la restricción de visibili
 - Compilación estática del commit V2 `458ec143c6f8245f2f90bfc445c8625c5f9e3884`, con las 141 rutas bajo `/apel-ortodoncia`. Se conservan las advertencias visibles de revisión clínica y de traducción. Se aplicó la corrección aprobada de la mención a Brident en el texto público.
 - Se cotejaron procedencia y consentimiento general documentado para fotos originales de clínica y equipo. Tres fotos de procedimientos se cambiaron por los retratos correspondientes del directorio original. Otras dos imágenes se sustituyeron por originales sin radiografía ni documentación visible. Se incluyeron 14 fotos y dos logos, sin material de pacientes identificado en la revisión. Los archivos privados y las evidencias quedan fuera de Pages.
 - Se conservaron los motores ATREZZO originales y el historial V1. La revisión pública no certifica contenido clínico, traducciones ni la aprobación del website definitivo.
+
+## Corrección de estructura y diseño — etapa 08 en validación
+
+Se retoma la versión publicada `80e85636` y la comparación con la estructura original y la biblioteca ATREZZO. El usuario exige cabeceras visibles con los grupos originales y una composición diferenciada por unidad y familia.
+
+- Cabeceras de Ortodoncia y Dental recuperadas con sus grupos, submenús, destinos originales localizados, logo contextual, idiomas y cruce de unidad. Se utiliza HTML nativo con apertura por teclado y toque. El menú inmersivo anterior se retiró según la corrección solicitada.
+- Portal con fotografía de ambas unidades y dos accesos de igual peso. Ortodoncia articula clínica, método, tres capítulos y ayuda al paciente. Dental organiza dirección profesional, trayectoria, tratamientos por familias, los seis profesionales y cita.
+- Tratamientos, perfiles, directorios, clínica, galería, ayuda y contacto tienen composiciones específicas. Se mantiene la trazabilidad de los bloques del master y el aviso de revisión.
+- ATZ-PGT-002, ATZ-SEC-004 y ATZ-SEC-007 conservan los archivos originales fijados. Los textos de escena se localizaron deliberadamente. Se seleccionaron dos retratos publicados de cuerpo más amplio para evitar que los titulares ocupen el rostro.
+- Verificación local de las 141 rutas en Chrome con sus imágenes. Pasaron 96 comprobaciones de navegación, tres capítulos y ambos relevos, Handoff en ambas direcciones, reduced-motion y familias representativas en ES/EN/DE a 375/768/1024/1440. Los grupos de cabecera también se probaron sin JavaScript. Evidencia privada en `qa/v2-revision-diseno/` del paquete.
+- La publicación es una preview autorizada para revisión. Continúan pendientes la aceptación visual integral del usuario, el cotejo clínico y de traducciones y la comprobación en WebKit/dispositivo físico. `client_ready:false`.
+
+**Siguiente acción:** revisión integral del conjunto online por el usuario y resolución de observaciones de etapa 08.
