@@ -10,7 +10,9 @@ import tempfile
 from bs4 import BeautifulSoup
 from PIL import Image, ImageOps
 
+from composition import DENTAL_CHAPTERS, ORTHO_CHAPTERS, PORTRAITS
 from labels import LANGUAGES, TITLES, UI, localize
+from navigation import BLOG, DENTAL_DIRECT, DENTAL_ESTHETICS, DENTAL_PEOPLE, ORTHO_CLINIC, ORTHO_TREATMENTS
 
 CODE = Path(__file__).resolve().parent
 PILOT = ("portal", "o-home", "d-home")
@@ -18,7 +20,7 @@ PHONE = "+503 2243-9979"
 PHONE_LINK = "tel:+50322439979"
 SECTION_CSS = {"o-home": ["secciones/ats3.css"], "d-home": ["secciones/ats2.css"]}
 ATZ_FILES = {
-    "ATZ-PGT-002": "page-transitions", "ATZ-NAV-001": "navegacion",
+    "ATZ-PGT-002": "page-transitions",
     "ATZ-SEC-004": "secciones", "ATZ-SEC-007": "secciones",
 }
 
@@ -145,65 +147,81 @@ class Site:
 
     def portal(self, lang):
         items = []
-        for unit, name in (("d", "Dental"), ("o", self.text("unit_o", lang))):
-            label = (f'{self.img(unit + "-logo", lang, eager=True)}<span class="portal-title">{name}</span>'
-                     f'<span class="portal-action">{self.text("open", lang)} <span aria-hidden="true">↗</span></span>')
-            items.append(self.link(unit + "-home", lang, label, 'data-atz-link data-atz-effect="split"'))
+        for unit, photo, label in (("d", "d-veronica", "unit_d"), ("o", "o-pair", "unit_o")):
+            identity = (
+                f'<span class="portal-identity">{self.img(unit + "-logo", lang, eager=True)}'
+                f'<span class="portal-title">{self.text(label, lang)}</span>'
+                f'<span class="portal-action">{self.text("open", lang)} <span aria-hidden="true">↗</span></span></span>'
+            )
+            picture = f'<span class="portal-photo">{self.img(photo, lang, eager=True)}</span>'
+            items.append(self.link(unit + "-home", lang, picture + identity,
+                                   'data-atz-link data-atz-effect="split"'))
         return (
             f'<header class="portal-top">{self.locales("portal", lang)}</header>'
             f'<main id="content" class="portal-grid" aria-label="{self.title("portal", lang)}">{"".join(items)}</main>'
         )
 
-    def unit_destinations(self, unit):
+    def primary_navigation(self, page_id, lang, unit):
+        def item(target, label=None):
+            attributes = 'aria-current="page"' if target == page_id else ""
+            return self.link(target, lang, label, attributes)
+
+        def labeled(target, key):
+            return item(target, self.text(key, lang))
+
+        def menu_list(targets):
+            return "".join(f"<li>{item(target)}</li>" for target in targets)
+
+        def group(key, targets, extra="", wide=False):
+            name = self.text(key, lang)
+            section = (' aria-label="' + name + '"')
+            panel_class = "header-submenu header-submenu-wide" if wide else "header-submenu"
+            return (f'<details name="primary-sections" class="header-disclosure"><summary>{name}</summary>'
+                    f'<ul class="{panel_class}"{section}>{menu_list(targets)}{extra}</ul></details>')
+
         if unit == "d":
-            return ("d-tratamientos", "d-especialistas", "d-clinica"), ("d-room", "d-veronica", "d-room")
-        return ("o-tratamientos", "o-doctores", "o-instalaciones"), ("o-andre", "o-pair", "o-room")
+            esthetics = (
+                f'<li class="header-subgroup"><span>{self.text("nav_esthetics", lang)}</span>'
+                f'<ul>{menu_list(DENTAL_ESTHETICS)}</ul></li>'
+            )
+            direct = f'<li>{item("d-ortodoncia")}</li>{esthetics}{menu_list(DENTAL_DIRECT)}'
+            navigation = (
+                labeled("d-home", "nav_home"),
+                labeled("d-clinica", "nav_dental_clinic"),
+                group("nav_specialists", ("d-especialistas", *DENTAL_PEOPLE)),
+                group("nav_dental_treatments", ("d-tratamientos",), direct, wide=True),
+                item("o-home"),
+                labeled("d-citas", "nav_appointments"),
+            )
+        else:
+            navigation = (
+                labeled("o-home", "nav_home"),
+                group("nav_treatments", ORTHO_TREATMENTS),
+                group("nav_staff", ("o-doctores", "o-staff")),
+                group("nav_clinic", ORTHO_CLINIC),
+                item("o-ligas"),
+                labeled("o-sos", "nav_sos"),
+                labeled("o-faq", "nav_faq"),
+                f'<a href="{BLOG}">Blog</a>',
+                item("d-home"),
+                labeled("o-contacto", "contact"),
+            )
+        return (f'<nav class="primary-navigation" aria-label="{self.text("nav", lang)}"><ul>'
+                + "".join(f"<li>{entry}</li>" for entry in navigation) + "</ul></nav>")
 
     def shell_header(self, page_id, lang, unit):
-        contact = "d-citas" if unit == "d" else "o-contacto"
-        other = "o-home" if unit == "d" else "d-home"
-        destinations, photos = self.unit_destinations(unit)
-        fragment = self.original("ATZ-NAV-001")
-        host = fragment.select_one("[data-atz-id]")
-        host["class"].append("unit-header")
-        # These are the three demo destination scenes, replaced by site documents.
-        for section in host.select(".atz-nav-intro,.atz-nav-anchor"):
-            section.decompose()
-        logo = host.select_one(".atz-nav-logo")
-        logo["href"] = self.path(unit + "-home", lang)
-        logo.clear()
-        logo.append(BeautifulSoup(self.img(unit + "-logo", lang, eager=True), "html.parser"))
-        fallback = host.select_one(".atz-nav-fallback")
-        fallback["aria-label"] = localize(UI["nav"], lang)
-        for anchor, destination in zip(fallback.select("a"), destinations, strict=True):
-            anchor["href"] = self.path(destination, lang)
-            anchor.string = localize(TITLES[destination], lang)
-        trigger = host.select_one("[data-azn1-menu-trigger]")
-        trigger["aria-label"] = localize(UI["menu"], lang)
-        trigger.find_all("span", recursive=False)[-1].string = localize(UI["menu"], lang)
-        dialog = host.select_one("[data-azn1-menu]")
-        dialog["class"].append("apel-menu")
-        dialog["aria-label"] = localize(UI["nav"], lang)
-        dialog.select_one(".atz-nav-dialog-head strong").string = localize(TITLES[unit + "-home"], lang)
-        close = dialog.select_one("[data-azn1-menu-close]")
-        close["aria-label"] = localize(UI["close"], lang)
-        close.contents[0].replace_with(localize(UI["close"], lang) + " ")
-        dialog.select_one(".atz-nav-dialog-links-wrap > span").clear()
-        dialog.select_one(".atz-nav-dialog-foot").clear()
-        dialog.select_one(".atz-nav-photo-caption").clear()
-        for anchor, destination in zip(dialog.select("[data-azn1-menu-link]"), destinations, strict=True):
-            anchor["href"] = self.path(destination, lang)
-            anchor.strong.string = localize(TITLES[destination], lang)
-        for item, name in zip(dialog.select("[data-azn1-menu-photo]"), photos, strict=True):
-            item.append(BeautifulSoup(self.img(name, lang), "html.parser"))
         return (
-            f'<header><div class="site-utility">{self.link("portal", lang, self.text("portal", lang), "class=portal-back")}'
-            f'{self.link(other, lang)}{self.locales(page_id, lang)}'
-            f'{self.link(contact, lang, self.text("contact", lang))}</div>{host}</header>'
+            f'<header class="unit-header unit-header-{unit}"><div class="site-utility">'
+            f'{self.link("portal", lang, self.text("portal", lang), "class=portal-back")}'
+            f'<a class="review-status" href="#review">{self.text("review_short", lang)}</a>'
+            f'{self.locales(page_id, lang)}</div>'
+            f'<div class="header-row">{self.link(unit + "-home", lang, self.img(unit + "-logo", lang, eager=True), "class=header-logo")}'
+            f'{self.primary_navigation(page_id, lang, unit)}</div></header>'
         )
 
     def footer(self, lang, unit):
-        destinations, _ = self.unit_destinations(unit)
+        destinations = (("d-tratamientos", "d-especialistas", "d-clinica") if unit == "d"
+                        else ("o-tratamientos", "o-doctores", "o-instalaciones"))
         legal = unit + "-privacidad"
         other = "d-home" if unit == "o" else "o-home"
         extra = ["o-pacientes", "o-galeria"] if unit == "o" else ["d-citas", "d-galeria"]
@@ -217,49 +235,35 @@ class Site:
         )
 
     def narrative(self, lang, unit):
-        if unit == "o":
-            root = self.original("ATZ-SEC-007").select_one("[data-atz-id]")
-            root["aria-label"] = localize(TITLES["o-home"], lang)
-            for chapter, photo, destination in zip(root.select(".ss03__chapter"),
-                    ("o-andre", "o-office", "o-room"), ("o-tratamientos", "o-andre", "o-instalaciones"), strict=True):
-                tag = chapter.img
-                asset = self.plan["assets"][photo]
-                tag["src"], tag["alt"] = self.photo_url(photo), asset["alt"][lang]
-                tag["width"], tag["height"] = asset["width"], asset["height"]
-                chapter["style"] = chapter["style"].split("--focus:")[0] + "--focus:" + asset["desktop_focus"]
-                heading = chapter.h2
-                words = localize(TITLES[destination], lang).split()
-                if len(words) >= 3:
-                    first, middle, last = words[0], " ".join(words[1:-1]), words[-1]
-                else:
-                    first, middle, last = words[0], words[-1] if len(words) > 1 else "", ""
-                source_text = BeautifulSoup(f"{markup(first)}<br><em>{markup(middle)}</em><br>{markup(last)}", "html.parser")
-                heading.clear()
-                heading.append(source_text)
-                chapter.select_one(".ss03__text").string = asset["alt"][lang]
-                chapter.select_one(".ss03__kicker").string = localize(UI["unit_o"], lang)
-                chapter.select_one(".ss03__indicator").string = localize(UI["scroll"], lang)
-                chapter.a["href"] = self.path(destination, lang)
-                chapter.a.string = localize(UI["open"], lang)
-            return str(root)
-        root = self.original("ATZ-SEC-004").select_one("[data-atz-id]")
-        root.section["aria-label"] = localize(TITLES["d-home"], lang)
-        for pane, photo, destination in zip(root.select(".ats2-handoff-pane"),
-                ("d-veronica-model", "d-room"), ("d-especialistas", "d-clinica"), strict=True):
+        ortho = unit == "o"
+        root = self.original("ATZ-SEC-007" if ortho else "ATZ-SEC-004").select_one("[data-atz-id]")
+        root["aria-label"] = localize(TITLES[f"{unit}-home"], lang)
+        selector = ".ss03__chapter" if ortho else ".ats2-handoff-pane"
+        scenes = ORTHO_CHAPTERS if ortho else DENTAL_CHAPTERS
+        for frame, (photo, destination, titles, description) in zip(root.select(selector), scenes, strict=True):
             asset = self.plan["assets"][photo]
-            pane.img["src"], pane.img["alt"] = self.photo_url(photo), asset["alt"][lang]
-            pane.img["width"], pane.img["height"] = asset["width"], asset["height"]
-            pane.img["style"] = "object-position:" + asset["desktop_focus"]
-            words = localize(TITLES[destination], lang).split(maxsplit=1)
-            pane.h2.clear()
-            pane.h2.append(BeautifulSoup("<br>".join(map(markup, words)), "html.parser"))
-            pane.select_one(".ats2-scene-kicker").string = localize(TITLES["d-home"], lang)
-            pane.p.string = asset["alt"][lang]
-        return str(root) + f'<div class="wrap inline-content">{self.link_list(("d-especialistas", "d-clinica"), lang)}</div>'
+            frame.img["src"], frame.img["alt"] = self.photo_url(photo), asset["alt"][lang]
+            frame.img["width"], frame.img["height"] = asset["width"], asset["height"]
+            title = [markup(line) for line in localize(titles, lang)]
+            if ortho:
+                title[1] = f"<em>{title[1]}</em>"
+                frame["style"] = frame["style"].split("--focus:")[0] + "--focus:" + asset["desktop_focus"]
+                frame.select_one(".ss03__text").string = localize(description, lang)
+                frame.select_one(".ss03__kicker").string = localize(TITLES[destination], lang)
+                frame.select_one(".ss03__indicator").string = localize(UI["scroll"], lang)
+                frame.a["href"] = self.path(destination, lang)
+                frame.a.string = localize(UI["open"], lang)
+            else:
+                frame.img["style"] = "object-position:" + asset["desktop_focus"]
+                frame.select_one(".ats2-scene-kicker").string = localize(TITLES[destination], lang)
+                frame.p.string = localize(description, lang)
+            frame.h2.clear()
+            frame.h2.append(BeautifulSoup("<br>".join(title), "html.parser"))
+        return str(root)
 
-    def blocks(self, page_id, lang):
+    def blocks(self, page_id, lang, sections=None):
         content = []
-        for section in self.pages[page_id]["sections"]:
+        for section in self.pages[page_id]["sections"] if sections is None else sections:
             blocks = []
             for part in section["blocks"]:
                 tag = part["tag"]
@@ -267,11 +271,15 @@ class Site:
                 if part["target_id"] and part["target_id"] != page_id:
                     label = self.link(part["target_id"], lang, label)
                 trace = markup(" ".join(part["block_ids"]))
-                if tag.startswith("h"):
-                    tag = "h3"
+                date_label = tag.startswith("h") and all(character.isdigit() or character in " -–—" for character in part["es"])
+                if date_label:
+                    tag = "p"
+                elif tag.startswith("h"):
+                    tag = "h2" if tag in {"h1", "h2", "h3", "h4"} else "h3"
                 elif tag not in {"p", "address"}:
                     tag = "p"
-                blocks.append(f'<{tag} class="source-block" data-apel-block="{trace}">{label}</{tag}>')
+                kind = "source-block source-date" if date_label else "source-block"
+                blocks.append(f'<{tag} class="{kind}" data-apel-block="{trace}">{label}</{tag}>')
             identity = f'id="{section["id"]}" data-apel-section="{section["id"]}"'
             if page_id == "o-faq" and len(blocks) > 1 and section["blocks"][0]["tag"].startswith("h"):
                 question = section["blocks"][0]
@@ -282,31 +290,90 @@ class Site:
                 content.append(f'<div {identity}>{"".join(blocks)}</div>')
         return "".join(content)
 
-    def home(self, page_id, lang, unit):
-        dental = unit == "d"
-        contact = "d-citas" if dental else "o-contacto"
-        portrait = self.img("d-veronica" if dental else "o-pair", lang, eager=True)
-        if dental:
-            portrait = f"<figure>{portrait}</figure>"
-        copy = (f'<div class="copy"><h1>{self.title(page_id, lang)}</h1><p class="motto">{self.text("motto", lang)}</p>'
-                f'<div class="action-row">{self.link(contact, lang, attributes="class=button")}</div></div>')
-        hero = f'<section class="home-{unit}-hero">{copy}{portrait}</section>'
-        treatment = unit + "-tratamientos"
-        treatments = tuple(key for key, data in self.pages.items() if data["family"] == "treatment" and key[0] == unit)
-        service = (f'<section class="wrap section editorial-index"><h2>{self.title(treatment, lang)}</h2>'
-                   f'{self.link_list((treatment, *treatments), lang)}</section>')
-        patients = ("d-especialistas", "d-galeria", "d-contacto") if dental else (
-                    "o-pacientes", "o-inicio-tratamiento", "o-faq", "o-sos", "o-ligas")
-        body = (
-            f'<section class="soft section"><div class="wrap editorial-index"><div class="reader">'
-            f'<p class="notice">{self.review_notice(lang)}</p>{self.blocks(page_id, lang)}</div>'
-            f'<div>{self.link_list(patients, lang)}{self.guide(lang, unit)}</div></div></section>'
+    def care_links(self, lang, unit):
+        choices = (
+            (("o-concepto", "o-aparatos", "o-alineadores"), ("o-interdisciplinarios", "o-tratamientos"))
+            if unit == "o" else (DENTAL_ESTHETICS, ("d-ortodoncia", *DENTAL_DIRECT))
         )
-        final = (f'<section class="wrap section"><h2>{self.title(contact, lang)}</h2><p class="inline-content">'
-                 f'<a class="button" href="{PHONE_LINK}">{self.text("call", lang)} · {PHONE}</a></p>'
-                 f'<p>{self.text("phone_review", lang)}</p></section>')
-        middle = self.narrative(lang, unit) + service if dental else service + self.narrative(lang, unit)
-        return hero + middle + body + final
+        heads = (
+            (self.text("nav_treatments", lang), self.title("o-tratamientos", lang))
+            if unit == "o" else (self.text("nav_esthetics", lang), self.text("integrated_care", lang))
+        )
+        return "".join(f"<div><h3>{heading}</h3>{self.link_list(links, lang)}</div>"
+                       for heading, links in zip(heads, choices, strict=True))
+
+    def source_notice(self, lang):
+        return f'<p class="notice" id="review">{self.review_notice(lang)}</p>'
+
+    def call(self, lang):
+        return f'<a class="button" href="{PHONE_LINK}">{self.text("call", lang)} · {PHONE}</a>'
+
+    def portrait_directory(self, page_id, lang, sections):
+        cards = []
+        for section in sections:
+            target = next((item["target_id"] for item in section["blocks"] if item["target_id"] in PORTRAITS), None)
+            source = self.blocks(page_id, lang, [section])
+            if not target:
+                cards.append(f'<div class="team-context reader">{source}</div>')
+                continue
+            photo = self.link(target, lang, self.img(PORTRAITS[target], lang))
+            cards.append(f'<article class="team-member"><figure>{photo}</figure><div>{source}</div></article>')
+        return "".join(cards)
+
+    def ortho_home(self, lang):
+        page = "o-home"
+        sections = self.pages[page]["sections"]
+        return (
+            f'<section class="ortho-entry" data-scene="O1"><figure>{self.img("o-room", lang, eager=True)}</figure>'
+            f'<div class="wrap ortho-title"><h1>{self.title(page, lang)}</h1><div>'
+            f'<p class="motto">{self.text("motto", lang)}</p>'
+            f'{self.link("o-contacto", lang, attributes="class=button")}</div></div></section>'
+            f'<section class="wrap section ortho-method" data-scene="O2"><div class="reader">'
+            f'{self.source_notice(lang)}{self.blocks(page, lang, sections[:4])}</div>'
+            f'<div class="method-links">{self.care_links(lang, "o")}</div></section>'
+            f'<div data-scene="O3">{self.narrative(lang, "o")}</div>'
+            f'<section class="patient-band section" data-scene="O4"><div class="wrap patient-grid">'
+            f'<div><h2>{self.title("o-pacientes", lang)}</h2>{self.guide(lang, "o")}</div>'
+            f'{self.link_list(("o-inicio-tratamiento", "o-faq", "o-sos", "o-ligas", "o-pacientes"), lang)}'
+            f'</div></section>'
+            f'<section class="wrap section editorial-close" data-scene="O5"><div>'
+            f'<h2>{self.title("o-contacto", lang)}</h2>{self.call(lang)}<p>{self.text("phone_review", lang)}</p></div>'
+            f'<div class="reader">{self.blocks(page, lang, sections[4:])}</div></section>'
+        )
+
+    def dental_home(self, lang):
+        page = "d-home"
+        sections = self.pages[page]["sections"]
+        context = [sections[0], {**sections[1], "blocks": sections[1]["blocks"][2:]}, sections[2]]
+        care, appointment, team_intro = sections[3:6], sections[6:7], sections[7:8]
+        hero_content = sections[1]["blocks"][:2]
+        hero_heading, hero_intro = hero_content
+        headline = markup(self.localized_block(hero_heading["es"], lang))
+        introduction = markup(self.localized_block(hero_intro["es"], lang))
+        title_trace = markup(" ".join(hero_heading["block_ids"]))
+        intro_trace = markup(" ".join(hero_intro["block_ids"]))
+        return (
+            f'<section class="dental-entry" data-scene="D1"><div class="wrap dental-entry-inner">'
+            f'<div><p class="elabel">{self.title(page, lang)}</p>'
+            f'<h1 data-apel-block="{title_trace}">{headline}</h1>'
+            f'<p class="dental-lead" data-apel-block="{intro_trace}">{introduction}</p>'
+            f'<div class="action-row">{self.link("d-citas", lang, attributes="class=button")}'
+            f'<a href="#dental-team">{self.title("d-especialistas", lang)}</a></div></div>'
+            f'<figure>{self.img("d-veronica", lang, eager=True)}</figure></div></section>'
+            f'<div data-scene="D2">{self.narrative(lang, "d")}</div>'
+            f'<section class="wrap section dental-care" data-scene="D3"><div class="dental-care-intro">'
+            f'<div><h2>{self.title("d-tratamientos", lang)}</h2>{self.link("d-tratamientos", lang)}</div>'
+            f'<div class="reader">{self.source_notice(lang)}{self.blocks(page, lang, context)}</div></div>'
+            f'<div class="care-columns">{self.care_links(lang, "d")}</div></section>'
+            f'<section class="soft section" id="dental-team" data-scene="D4"><div class="wrap"><div class="team-intro reader">'
+            f'{self.blocks(page, lang, team_intro)}</div><div class="team-list">'
+            f'{self.portrait_directory(page, lang, sections[8:])}</div>'
+            f'<div class="action-row team-links">{self.link("d-especialistas", lang)}'
+            f'{self.link("d-clinica", lang)}{self.link("d-galeria", lang)}</div></div></section>'
+            f'<section class="wrap section editorial-close" data-scene="D5"><div class="reader">'
+            f'{self.blocks(page, lang, appointment)}{self.link("d-citas", lang, attributes="class=button")}'
+            f'{self.guide(lang, "d")}</div><div class="reader">{self.blocks(page, lang, care)}</div></section>'
+        )
 
     def guide(self, lang, unit):
         guide_routes = (
@@ -346,59 +413,99 @@ class Site:
                 f'<button type="button" data-reset>{self.text("reset", lang)}</button>'
                 f'<button type="button" data-export>{self.text("export", lang)}</button></div></fieldset>')
 
-    def interior(self, page_id, lang, unit):
-        data = self.pages[page_id]
-        family = data["family"]
-        photos = self.plan["pages"][page_id]["scenes"][0]["photos"]
-        hero = self.img(photos[0], lang, eager=True) if photos and family != "gallery" else ""
-        heading = f'<section class="wrap page-head"><div><h1>{self.title(page_id, lang)}</h1></div>{hero}</section>'
-        if family == "legal":
-            return heading + f'<div class="wrap section"><p class="notice">{self.text("legal", lang)}</p></div>'
-        body = self.blocks(page_id, lang)
-        if family == "gallery":
-            body = self.gallery(photos, lang) + body
-        if page_id == "o-pacientes":
-            body += self.guide(lang, unit)
-        if family == "studio":
-            body = self.studio(lang) + body
-        if family == "people":
-            people = ("o-andre", "d-veronica", "o-staff") if unit == "o" else (
-                "d-veronica", "o-andre", "d-minerva", "d-david", "d-jaime", "d-mirna")
-            body = self.link_list(tuple(target for target in people if target != page_id), lang) + body
-        if family == "catalog":
-            body = self.link_list(tuple(key for key, info in self.pages.items()
-                                       if info["family"] == "treatment" and key[0] == unit), lang) + body
-        if family == "clinic":
-            locations = ("o-filosofia", "o-caracteristicas", "o-instalaciones", "o-galeria") if unit == "o" else ("d-clinica", "d-galeria")
-            body += self.link_list(tuple(target for target in locations if target != page_id), lang)
-        if family == "contact":
-            body = (f'<p><a class="button" href="{PHONE_LINK}">{self.text("call", lang)} · {PHONE}</a></p>'
-                    f'<p>{self.text("phone_review", lang)}</p>' + body)
-        topic_links = []
-        for section in data["sections"]:
+    def contents(self, page_id, lang):
+        items = []
+        for section in self.pages[page_id]["sections"]:
             first = section["blocks"][0]
             if not first["tag"].startswith("h"):
                 continue
-            label = markup(self.localized_block(first["es"], lang))
-            topic_links.append(f'<li><a href="#{section["id"]}">{label}</a></li>')
-        toc = (f'<nav class="toc" aria-label="{self.text("topics", lang)}"><h3>{self.text("topics", lang)}</h3>'
-               f'<ul>{"".join(topic_links)}</ul></nav>') if len(topic_links) > 1 else ""
-        return (heading + f'<section class="wrap section {"article-layout" if toc else ""}">{toc}'
-                f'<div class="{"reader" if family != "gallery" else ""}"><p class="notice">{self.review_notice(lang)}</p>{body}</div></section>')
+            title = markup(self.localized_block(first["es"], lang))
+            items.append(f'<li><a href="#{section["id"]}">{title}</a></li>')
+        if len(items) < 2:
+            return ""
+        label = self.text("topics", lang)
+        return f'<nav class="toc" aria-label="{label}"><h2>{label}</h2><ul>{"".join(items)}</ul></nav>'
+
+    def interior(self, page_id, lang, unit):
+        family = self.pages[page_id]["family"]
+        photos = self.plan["pages"][page_id]["scenes"][0]["photos"]
+        title = self.title(page_id, lang)
+        contact = "d-citas" if unit == "d" else "o-contacto"
+        call = self.call(lang)
+        contact_link = self.link(contact, lang, attributes="class=button")
+        heading = f'<div class="wrap interior-title"><h1>{title}</h1></div>'
+        notice = self.source_notice(lang)
+        blocks = self.blocks(page_id, lang)
+
+        if family == "legal":
+            return heading + f'<div class="wrap reading-section"><p class="notice" id="review">{self.text("legal", lang)}</p></div>'
+        if family == "profile":
+            portrait = PORTRAITS.get(page_id) or photos[0]
+            header = (f'<div class="profile-cover soft"><div class="wrap profile-cover-inner">'
+                      f'<figure>{self.img(portrait, lang, eager=True)}</figure><div><h1>{title}</h1>'
+                      f'<div class="action-row">{contact_link}</div></div></div></div>')
+            contents = self.contents(page_id, lang)
+            return (header + f'<div class="wrap reading-section article-layout profile-history">{contents}'
+                    f'<article class="reader">{notice}{blocks}</article></div>')
+        if family == "people":
+            sections = self.pages[page_id]["sections"]
+            entries = self.portrait_directory(page_id, lang, sections)
+            if unit == "o":
+                entries += self.link_list(tuple(page for page in ("o-doctores", "o-staff", "o-andre", "d-veronica") if page != page_id), lang)
+            return (f'<div class="soft">{heading}</div><section class="wrap section">'
+                    f'<div class="reader">{notice}</div><div class="team-list">{entries}</div></section>')
+        if family == "clinic":
+            locations = ("o-filosofia", "o-caracteristicas", "o-instalaciones", "o-galeria") if unit == "o" else ("d-clinica", "d-galeria")
+            picture = f'<figure class="clinic-cover">{self.img(photos[0], lang, eager=True)}</figure>' if photos else ""
+            details = self.gallery(photos[1:], lang) if len(photos) > 1 else ""
+            related = self.link_list(tuple(target for target in locations if target != page_id), lang)
+            return (heading + picture + f'<div class="wrap section clinic-reading"><article class="reader">'
+                    f'{notice}{blocks}</article><aside>{related}{contact_link}</aside></div>'
+                    f'<div class="wrap clinic-extra">{details}</div>')
+        if family == "gallery":
+            return heading + f'<section class="wrap reading-section">{notice}{self.gallery(photos, lang)}<div class="reader">{blocks}</div></section>'
+        if family == "catalog":
+            return (f'<div class="soft">{heading}</div><section class="wrap section">'
+                    f'<div class="care-columns">{self.care_links(lang, unit)}</div>'
+                    f'<article class="reader catalog-source">{notice}{blocks}</article></section>')
+        if family == "treatment":
+            overview = self.contents(page_id, lang)
+            related = (("o-tratamientos", "o-inicio-tratamiento") if unit == "o" else ("d-tratamientos", "d-citas"))
+            return (
+                f'<div class="treatment-cover"><div class="wrap treatment-cover-inner">'
+                f'<div>{self.link(f"{unit}-tratamientos", lang)}<h1>{title}</h1></div>{contact_link}</div></div>'
+                f'<div class="wrap reading-section article-layout treatment-reading">'
+                f'<aside>{overview}{self.link_list(related, lang)}</aside><article class="reader">{notice}{blocks}</article></div>'
+            )
+        if family == "contact":
+            return (
+                f'<div class="soft">{heading}</div><section class="wrap reading-section contact-layout"><div>'
+                f'{call}<p class="call-note">{self.text("phone_review", lang)}</p></div>'
+                f'<article class="reader">{notice}{blocks}</article></section>'
+            )
+
+        tools = self.studio(lang) if family == "studio" else (
+            self.guide(lang, unit) if page_id == "o-pacientes" else ""
+        )
+        immediate = call if page_id in {"o-sos", "o-inicio-tratamiento"} else self.link("o-sos", lang)
+        return (
+            f'<div class="patient-hero">{heading}</div><section class="wrap reading-section patient-detail">'
+            f'<div class="action-row">{immediate}</div>{tools}<article class="reader">{notice}{blocks}</article></section>'
+        )
 
     def render(self, page_id, lang):
         portal = page_id == "portal"
         unit = page_id[0]
         styles = ["page-transitions/atrezzo-transitions.css"]
-        if not portal:
-            styles.append("navegacion/ATZ-NAV-001.css")
         styles.extend(SECTION_CSS.get(page_id, []))
         css = "".join(f'<link rel="stylesheet" href="{self.asset("library/" + name)}">' for name in styles)
         hreflang = "".join(f'<link rel="alternate" hreflang="{other}" href="{self.path(page_id, other)}">'
                            for other in LANGUAGES)
         body = self.portal(lang)
         if not portal:
-            main = self.home(page_id, lang, unit) if page_id.endswith("-home") else self.interior(page_id, lang, unit)
+            main = self.ortho_home(lang) if page_id == "o-home" else (
+                self.dental_home(lang) if page_id == "d-home" else self.interior(page_id, lang, unit)
+            )
             body = (f'<a class="skip" href="#content">{self.text("skip", lang)}</a>'
                     f'{self.shell_header(page_id, lang, unit)}<main id="content" tabindex="-1">{main}</main>{self.footer(lang, unit)}')
         return f'''<!doctype html>
