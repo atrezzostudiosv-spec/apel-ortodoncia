@@ -1,11 +1,9 @@
-# APEL — ATREZZO STUDIOS
+# APEL V2 · Preview de revisión
 
-Etapa 08 activa. Rama `main`. Preview de diseño, no sitio oficial.
+[Ver el portal de APEL](https://atrezzostudiosv-spec.github.io/apel-ortodoncia/)
 
-URL prevista: https://atrezzostudiosv-spec.github.io/apel-ortodoncia/
+Dental y Ortodoncia tienen recorridos independientes desde el portal histórico. La vista de revisión incluye ES, EN y DE. El contenido clínico histórico y las traducciones están pendientes de validación.
 
-108 rutas estáticas generadas desde 36 páginas base. Compilar con `python3 src/build.py` (salida `dist/`). La raíz contiene la compilación adaptada al prefijo `/apel-ortodoncia/`. GitHub Pages: main / (root), si está habilitado. No modificar DNS ni dominio original.
+GitHub Pages sirve el sitio estático de `main` con el prefijo `/apel-ortodoncia`. El generador y la guía de compilación están en [v2/README.md](v2/README.md). La compilación requiere acceso por separado al paquete privado de trabajo.
 
-Fotografías y logos enlazados desde URLs públicas originales, sin subir copias ni material clínico. Textos clínicos extensos e imágenes de tratamientos omitidos de esta preview; traducciones resumidas pendientes de revisión. No usar como fuente de indicaciones clínicas. `noindex` no equivale a privacidad.
-
-Consultar ATREZZO-PROJECT-STATUS.md.
+Los medios publicados proceden de las webs originales. Los archivos maestros, capturas, inventarios privados y evidencias de trabajo quedan fuera de este repositorio.
