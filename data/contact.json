@@ -1,0 +1,31 @@
+{
+  "phone": {
+    "e164": "+50322439979",
+    "published_original": true,
+    "verified_current": false
+  },
+  "whatsapp": {
+    "e164": "+50360061230",
+    "active": false,
+    "verified_current": false,
+    "messages": {
+      "es": "Hola, quisiera información sobre una cita.",
+      "en": "Hello, I would like information about an appointment.",
+      "de": "Guten Tag, ich hätte gerne Informationen zu einem Termin."
+    }
+  },
+  "address": {
+    "status": "pending",
+    "original_variants": [
+      "317 Edificio Torino",
+      "318 Edificio Torino"
+    ]
+  },
+  "hours": {
+    "status": "pending",
+    "original_variants": [
+      "8–12 / 14–18",
+      "8–18"
+    ]
+  }
+}

@@ -1,5 +1,11 @@
 # APEL — ATREZZO STUDIOS
 
-Etapa 08 activa. Rama de trabajo activa: `main`, por indicación del usuario. La rama `design/website-integral-v1` conserva el punto de partida de la migración.
+Etapa 08 activa. Rama `main`. Preview de diseño, no sitio oficial.
 
-Este checkout público contiene únicamente código técnico de la versión integral existente. El contenido, estilos de marca, generador y medios del cliente no se han incorporado todavía. No es una versión ejecutable completa ni un despliegue. No activar Pages ni modificar DNS. Consultar `ATREZZO-PROJECT-STATUS.md`.
+URL prevista: https://atrezzostudiosv-spec.github.io/apel-ortodoncia/
+
+108 rutas estáticas generadas desde 36 páginas base. Compilar con `python3 src/build.py` (salida `dist/`). La raíz contiene la compilación adaptada al prefijo `/apel-ortodoncia/`. GitHub Pages: main / (root), si está habilitado. No modificar DNS ni dominio original.
+
+Fotografías y logos enlazados desde URLs públicas originales, sin subir copias ni material clínico. Textos clínicos extensos e imágenes de tratamientos omitidos de esta preview; traducciones resumidas pendientes de revisión. No usar como fuente de indicaciones clínicas. `noindex` no equivale a privacidad.
+
+Consultar ATREZZO-PROJECT-STATUS.md.

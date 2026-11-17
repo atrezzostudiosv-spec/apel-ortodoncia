@@ -1,12 +1,6 @@
-assets/
-data/
-dist/
+private/
 qa/
 *.zip
-*.woff
-*.woff2
-*.ttf
-*.otf
 .env*
 __pycache__/
 .DS_Store

@@ -2,18 +2,14 @@
 
 2026-11-17 — Etapa 08 abierta. Etapas 01–07 cerradas.
 
-## Migración al repositorio
+## Preview web autorizada
 
-Por instrucción del usuario, GitHub es el destino del desarrollo. El repositorio estaba vacío y continúa público. Se inicializó `main` exclusivamente con README y se creó `design/website-integral-v1`. Esta rama incorpora el código de interacción de la maqueta existente y el paquete original ATZ-NAV-001. El código técnico se incorporó a `main` mediante avance rápido (fast-forward) hasta el commit `84e3b9c`, por indicación del usuario. `main` es la rama activa. No se ha activado Pages desde esta ejecución.
+El usuario autorizó la creación de una preview en vivo. `main` contiene el generador adaptado y las 108 rutas estáticas con prefijo GitHub Pages. El repositorio sigue público. No se han subido fotografías, logotipos binarios, archivos clínicos ni paquetes maestros. Fotografías y logos no clínicos enlazados desde URLs públicas originales. Los textos clínicos extensos no validados y las imágenes de tratamientos se excluyeron de la preview. Se conserva el paquete integral privado previamente entregado. No se modificó el dominio original ni DNS.
 
-## Alcance y límites
+## QA ejecutada antes de transferir
 
-La versión integral previamente construida contiene 36 páginas y 108 rutas. No está íntegramente en GitHub: el generador con contenido, datos, CSS de marca, fotos, compilación y QA con material del cliente se mantienen fuera del repositorio público. La rama `main` aún no es navegable como website completo. No subir estos recursos hasta confirmar visibilidad privada y autorización. No incorporar archivos maestros ni pacientes identificables aun en privado. No se modificó el dominio original.
+108 rutas compiladas, 0 enlaces internos rotos, 3.888 referencias del árbol Smart Guide verificadas, 0 fotografías binarias. `noindex,nofollow` en páginas. Las pruebas de interfaz previas de la maqueta local no certifican el nuevo hosting. Pendiente comprobar disponibilidad real de Pages, carga de recursos remotos y navegación en navegador.
 
-## Componentes
+## Funcionalidades
 
-ATZ-NAV-001: paquete exacto de la biblioteca oficial, incluidos HTML, CSS, módulo y runtime. Motor intacto. La versión integral previa lo integró; este checkout parcial no acredita una nueva QA de destino. `client_ready:false`. Las funcionalidades Smart Guide, lightbox, Braces Studio se conservan en `src/site.js`.
-
-## Pendiente
-
-Migrar la versión integral al repositorio privado sin reiniciar ni repetir fases cerradas. Completar motion narrativo, revisión editorial y traducciones, medios autorizados, contacto y pruebas reales de extremo a extremo. No se declara etapa 08 cerrada ni se autoriza publicación.
+Se conserva ATZ-NAV-001 original, Smart Guide, Braces Studio, galería, llamada y selector de idioma. WhatsApp desactivado hasta confirmar vigencia. Motion avanzado, traducciones completas, contenido clínico, fuentes y validación editorial pendientes. `client_ready:false`. No se declara etapa 08 cerrada.
